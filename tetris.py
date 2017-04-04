@@ -156,16 +156,20 @@ class Board():
 #represents a player. each player has a board, other player's board,
 #current shape, score, etc
 class Player():
-    def __init__(self, player_id, gs, myBoard, otherBoard):
+    def __init__(self, player_id, gs, myBoard, otherBoard, shapes):
+        self.shapes = shapes
         self.id = player_id
         self.board = myBoard
         self.other_board = otherBoard
         self.score = 0
         self.gs = gs
-        the_shape = self.get_next_shape()
-        self.shape = the_shape.check_and_create(self.board)
+        #the_shape = self.get_next_shape()
+        self.shape_nr = 0
+        self.the_shape = self.shapes.get_shape(self.shape_nr)
+        self.shape = self.the_shape.check_and_create(self.board)
         
     def handle_move(self, direction):
+        shape_nr = self.shape_nr
         #if you can't move then you've hit something
         if self.shape:
             if direction==UP:
@@ -177,8 +181,11 @@ class Player():
                         points = self.board.check_for_complete_row(
                             self.shape.blocks)
                         #del self.shape
-                        the_shape = self.get_next_shape()
-                        self.shape = the_shape.check_and_create(self.board)
+                        #the_shape = self.get_next_shape()
+                        self.shape_nr += 1
+                        print shape_nr
+                        self.the_shape = self.shapes.get_shape(shape_nr)
+                        self.shape = self.the_shape.check_and_create(self.board)
                         
                         self.score += points
                         if self.gs.num_players == 2:
@@ -206,11 +213,27 @@ class Player():
                         return False
         return True
         
-    def get_next_shape(self):
-        #Randomly select which tetrominoe will be used next.
-        the_shape = self.gs.shapes[ random.randint(0,len(self.gs.shapes)-1) ]
-        return the_shape
+    #~ def get_next_shape(self):
+        #~ ## old: Randomly select which tetrominoe will be used next.
+        #~ the_shape = self.gs.shapes[ random.randint(0,len(self.gs.shapes)-1) ]
 
+        #~ return the_shape
+        
+#Generates a lot of shapes that are queued for the         
+#players. So the players will get the same shapes.
+class GenerateShapes(object):
+    def __init__(self, gs):
+        #generate shapes
+        self.gs = gs
+        self.the_shape = []
+        for i in range(10000): # Choose a really high number so we dont run out of shapes.
+            self.the_shape.append(self.gs.shapes[ random.randint(0,len(self.gs.shapes)-1) ])
+        #get shape by nr.
+        
+    def get_shape(self, shape_nr):
+        return self.the_shape[shape_nr]
+
+        
 #contains variables that are shared between the players:
 #levels, delay time, etc
 class GameState():
@@ -224,6 +247,7 @@ class GameState():
         self.winner = None #winning player id
        
         
+        
 #runs the overall game. initializes both player and any displays
 class TetrisGame(object):
 
@@ -234,6 +258,8 @@ class TetrisGame(object):
         self.input = DdrInput()
         #self.DISPLAYSURF = pygame.display.toggle_fullscreen()
         self.DISPLAYSURF = pygame.display.set_mode((1280, 720))
+        self.gameState = GameState()
+        self.shapes = GenerateShapes(self.gameState)
         while True:
             self.init_game()
             
@@ -243,7 +269,6 @@ class TetrisGame(object):
         print "init next game"
         self.boards = [Board(MAXX,MAXY), Board(MAXX,MAXY)]
         self.players = [None,None]
-        self.gameState = GameState()
         self.board_animation(0,"up_arrow")
         self.board_animation(1,"up_arrow")
         self.start_time = None
@@ -256,7 +281,7 @@ class TetrisGame(object):
         print "adding player",num
         if self.players[num]==None:
             self.boards[num].clear()
-            p = Player(num, self.gameState, self.boards[num], self.boards[(num+1)%2])
+            p = Player(num, self.gameState, self.boards[num], self.boards[(num+1)%2],self.shapes)
             self.players[num] = p
             self.board_animation(num,"down_arrow")
             self.gameState.num_players+=1
@@ -335,8 +360,11 @@ class TetrisGame(object):
         if self.gameState.winner!=None:
             winner_id = self.gameState.winner
             print "GAME OVER: player",winner_id,"wins"
+            del self.gameState
+            self.gameState = GameState()
         else:
             if self.gameState.num_players == 2:
+                import pdb; pdb.set_trace()
                 if self.players[0].score > self.players[1].score:
                     winner_id = 0
                 elif self.players[1].score > self.players[0].score:
