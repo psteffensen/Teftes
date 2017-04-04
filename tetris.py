@@ -334,7 +334,7 @@ class TetrisGame(object):
     def end_game(self):
         if self.gameState.winner!=None:
             winner_id = self.gameState.winner
-            print "GAME OVER: layer",winner_id,"wins"
+            print "GAME OVER: player",winner_id,"wins"
         else:
             if self.gameState.num_players == 2:
                 if self.players[0].score > self.players[1].score:

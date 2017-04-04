@@ -23,6 +23,7 @@ import time
 
 JOY_EVENT = 7
 JOY_EVENT_2 = 10
+JOY_EVNNT_2_1 = 11
 KEY_EVENT = 2
 KEY_RELEASE = 3
 X = 0
@@ -37,6 +38,7 @@ KEY_S = 115
 KEY_D = 100
 KEY_W = 119
 KEY_SPACE = 32
+KEY_X = 120
 KEY_ESC = 27
 
 DIRECTIONS = {0:'LEFT', 1:'RIGHT',  2:'UP', 3:'DOWN', 5:'DROP', 6:'DIE'}
@@ -80,8 +82,13 @@ class DdrInput(object):
     LEFT, RIGHT, UP, DOWN.  Returns None if there is no new input.  Only returns 1 input at a time.
     """
     event = pygame.event.poll()
+    if event.type != 0:
+        print event
+        
     player_move = None
-    if event.type == JOY_EVENT:
+    if event.type == JOY_EVENT_2:
+      player_index, player_move = self.handle_joy_event(event)
+    elif event.type == JOY_EVENT:
       player_index, player_move = self.handle_joy_event(event)
       if self.debug_mode:
         print (player_index, player_move)
@@ -100,15 +107,15 @@ class DdrInput(object):
         self.active_inputs[player_index] = (.5, time.time(), player_move)
       return (player_index, player_move)
     else:
-      for player_index in self.active_inputs: 
-        if self.active_inputs[player_index] != None:
-          (fallback_start, start_time, move) = self.active_inputs[player_index]
-          if time.time() - start_time > fallback_start:
-            fallback_start /= 2
-            fallback_start = max(.1, fallback_start)
-            start_time = time.time()
-            self.active_inputs[player_index] = (fallback_start, start_time, move)
-            return (player_index, move)
+      #~ for player_index in self.active_inputs:  pass
+        #~ if self.active_inputs[player_index] != None:
+          #~ (fallback_start, start_time, move) = self.active_inputs[player_index]
+          #~ if time.time() - start_time > fallback_start:
+            #~ fallback_start /= 2
+            #~ fallback_start = max(.1, fallback_start)
+            #~ start_time = time.time()
+            #~ self.active_inputs[player_index] = (fallback_start, start_time, move)
+            #~ return (player_index, move)
       return None
   
   def handle_joy_event(self, event):
@@ -116,25 +123,33 @@ class DdrInput(object):
       #there may be a tricky quick way to code this, but this is more readable
       #value == 0 -> released
       player_move = None
-      #if event.type == JOY_EVENT_2:
-      #  player_move = DROP
-      #  return (player_index, player_move)
       #if event.type == JOY_EVENT_2+1:
       #  player_move = RELEASE
       #  return (player_index, player_move)
-      if event.axis == X:
-        if event.value < 0:
-          player_move = LEFT
-        elif event.value > 0:
-          player_move = RIGHT
-      else:
-        if event.value > 0:
-          player_move = DOWN
-        elif event.value < 0:
-          player_move = UP
-      if event.value == 0:
-        player_move = RELEASE
       
+      try:
+        if event.button == 2:
+          print event.button
+          player_move = DROP
+      except:
+          print "Button"
+      
+      try:    
+        if event.axis == X:
+          if event.value < 0:
+            player_move = LEFT
+          elif event.value > 0:
+            player_move = RIGHT
+        else:
+          if event.value > 0:
+            player_move = DOWN
+          elif event.value < 0:
+            player_move = UP
+        if event.value == 0:
+          player_move = RELEASE
+      except:
+        print "Axis"
+        
       return player_index, player_move
 
   def handle_key_event(self, event):
