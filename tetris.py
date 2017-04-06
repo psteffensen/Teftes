@@ -163,7 +163,6 @@ class Player():
         self.other_board = otherBoard
         self.score = 0
         self.gs = gs
-        #the_shape = self.get_next_shape()
         self.shape_nr = 0
         self.the_shape = self.shapes.get_shape(self.shape_nr)
         self.shape = self.the_shape.check_and_create(self.board)
@@ -180,12 +179,11 @@ class Player():
                     if direction == DOWN:
                         points = self.board.check_for_complete_row(
                             self.shape.blocks)
-                        #del self.shape
-                        #the_shape = self.get_next_shape()
                         self.shape_nr += 1
-                        print shape_nr
                         self.the_shape = self.shapes.get_shape(shape_nr)
                         self.shape = self.the_shape.check_and_create(self.board)
+
+                        self.NextShape(self.id, self.shape_nr)
                         
                         self.score += points
                         if self.gs.num_players == 2:
@@ -213,11 +211,10 @@ class Player():
                         return False
         return True
         
-    #~ def get_next_shape(self):
-        #~ ## old: Randomly select which tetrominoe will be used next.
-        #~ the_shape = self.gs.shapes[ random.randint(0,len(self.gs.shapes)-1) ]
-
-        #~ return the_shape
+    def NextShape(self, player_id, shape_nr):
+        shape = self.shapes.get_shape(shape_nr+1)
+        #import pdb; pdb.set_trace()
+        
         
 #Generates a lot of shapes that are queued for the         
 #players. So the players will get the same shapes.
@@ -254,6 +251,7 @@ class TetrisGame(object):
     #one-time initialization for gui etc
     def __init__(self):
         print "initialize tetris"
+        self.start_time = None
         self.gui = [PygameGoodRenderer(), LedRenderer()]
         self.input = DdrInput()
         #self.DISPLAYSURF = pygame.display.toggle_fullscreen()
@@ -267,7 +265,7 @@ class TetrisGame(object):
     #initializes each game
     def init_game(self):
         print "init next game"
-        self.boards = [Board(MAXX,MAXY), Board(MAXX,MAXY)]
+        self.boards = [Board(MAXX,MAXY),Board(MAXX,MAXY)]
         self.players = [None,None]
         self.board_animation(0,"up_arrow")
         self.board_animation(1,"up_arrow")
@@ -360,11 +358,8 @@ class TetrisGame(object):
         if self.gameState.winner!=None:
             winner_id = self.gameState.winner
             print "GAME OVER: player",winner_id,"wins"
-            del self.gameState
-            self.gameState = GameState()
         else:
             if self.gameState.num_players == 2:
-                import pdb; pdb.set_trace()
                 if self.players[0].score > self.players[1].score:
                     winner_id = 0
                 elif self.players[1].score > self.players[0].score:
@@ -375,13 +370,17 @@ class TetrisGame(object):
                 winner_id = 0
             else:
                 winner_id = 1
+        del self.gameState
+        self.gameState = GameState()
         self.animate_ending(winner_id)
 
     def board_animation(self, board_id, design, color="green"):
         b = self.boards[board_id]
         d = self.create_shapes(design)
         for coord in d:
+            #sleep(0.005)
             b.landed[coord]=color
+            #self.update_gui()
                         
     def animate_ending(self,winner_board):
         if winner_board == 2:
