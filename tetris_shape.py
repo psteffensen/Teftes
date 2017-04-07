@@ -48,7 +48,13 @@ class shape(object):
                 return None
         
         return cls( board, coords, color)
-            
+
+    #~ def create_next_shape(cls, board, coords, color ):
+        #~ """
+        #~ Create and return the nextshape instance.
+        #~ """        
+        #~ return cls( board, coords, color)
+
     def __init__(self, board, coords, color ):
         """
         Initialise the shape base.

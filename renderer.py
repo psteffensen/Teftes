@@ -48,7 +48,7 @@ class PygameGoodRenderer(Renderer):
   OFFSET = (220, 100)
   SCALE = 30 
   RADIUS = 6
-  GAP = 7
+  GAP = 8
   
   def __init__(self):
     pygame.init()
@@ -79,17 +79,23 @@ class PygameGoodRenderer(Renderer):
     if (2,"level") in game_board:
       level = game_board[(2,"level")]
       level_string = "Level: %d" % (level,)
-      text = font.render(level_string, 1, (255,255,255))
-      textpos = (x0 + self.SCALE * 6 + 20 ,y0 - self.SCALE * 2 - 40)
+      text = font.render(level_string, 1, (180,180,180))
+      textpos = (x0 + self.SCALE * 5 + 210, y0 - self.SCALE * 0)
       self.background.blit(text, textpos)
 
     if (2,"time_left") in game_board:
       time = game_board[(2,"time_left")]
-      time_string = "Time left: %d" % (round(time),)
-      text = font.render(time_string, 1, (255,255,255))
-      textpos = (x1 + self.SCALE * 3 - 20,y0 - self.SCALE * 2 - 40)
+      time_string = "Time left:"
+      text = font.render(time_string, 1, (180,180,180))
+      textpos = (x0 + self.SCALE * 5 + 190, y0 - self.SCALE * -3)
       self.background.blit(text, textpos)
       
+    if (2,"time_left") in game_board:
+      time = game_board[(2,"time_left")]
+      time_string = "%d" % (round(time),)
+      text = font.render(time_string, 1, (180,180,180))
+      textpos = (x0 + self.SCALE * 5 + 245, y0 - self.SCALE * -4)
+      self.background.blit(text, textpos)
     
     line_endpoints = [((x0,y0), (x0,y1-self.SCALE*2)),  ((x1,y1-self.SCALE*2), (x1,y0)), ((x1,y0), (x0,y0)), ((x0,y1 - self.SCALE*2), (x1,y1 - self.SCALE*2))]
     for p1,p2 in line_endpoints:

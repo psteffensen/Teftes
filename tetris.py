@@ -166,9 +166,10 @@ class Player():
         self.shape_nr = 0
         self.the_shape = self.shapes.get_shape(self.shape_nr)
         self.shape = self.the_shape.check_and_create(self.board)
+        self.the_nextshape = self.shapes.get_shape(self.shape_nr+1)
+        self.nextshape = self.the_nextshape.check_and_create(self.board)
         
     def handle_move(self, direction):
-        shape_nr = self.shape_nr
         #if you can't move then you've hit something
         if self.shape:
             if direction==UP:
@@ -180,10 +181,10 @@ class Player():
                         points = self.board.check_for_complete_row(
                             self.shape.blocks)
                         self.shape_nr += 1
-                        self.the_shape = self.shapes.get_shape(shape_nr)
+                        self.the_shape = self.shapes.get_shape(self.shape_nr)
                         self.shape = self.the_shape.check_and_create(self.board)
-
-                        self.NextShape(self.id, self.shape_nr)
+                        self.the_nextshape = self.shapes.get_shape(self.shape_nr+1)
+                        self.nextshape = self.the_nextshape.check_and_create(self.board)
                         
                         self.score += points
                         if self.gs.num_players == 2:
@@ -210,12 +211,8 @@ class Player():
                         # Signal that the shape has 'landed'
                         return False
         return True
-        
-    def NextShape(self, player_id, shape_nr):
-        shape = self.shapes.get_shape(shape_nr+1)
-        #import pdb; pdb.set_trace()
-        
-        
+
+                
 #Generates a lot of shapes that are queued for the         
 #players. So the players will get the same shapes.
 class GenerateShapes(object):
@@ -257,7 +254,6 @@ class TetrisGame(object):
         #self.DISPLAYSURF = pygame.display.toggle_fullscreen()
         self.DISPLAYSURF = pygame.display.set_mode((1280, 720))
         self.gameState = GameState()
-        self.shapes = GenerateShapes(self.gameState)
         while True:
             self.init_game()
             
@@ -269,6 +265,7 @@ class TetrisGame(object):
         self.players = [None,None]
         self.board_animation(0,"up_arrow")
         self.board_animation(1,"up_arrow")
+        self.shapes = GenerateShapes(self.gameState)
         self.start_time = None
         self.input.reset()
         self.update_gui()
@@ -427,7 +424,7 @@ class TetrisGame(object):
 
             if self.players[n]!=None:
                 p = self.players[n]
-
+                
                 #shapes
                 if p.shape:
                     blocks = p.shape.blocks
@@ -485,6 +482,12 @@ class TetrisGame(object):
                     for b in blocks:
                         if b.y >= 0:
                             d[(b.x+offset*n,b.y)] = b.color
+                            
+                #next shape
+                if p.nextshape:
+                    nextshape = p.nextshape.blocks
+                    for ns in nextshape:
+                        d[(ns.x+(offset*n),ns.y-3)] = ns.color
          
         return d
 
