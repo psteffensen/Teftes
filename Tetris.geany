@@ -28,11 +28,11 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=2
-FILE_NAME_0=8782;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Ftetris.py;0;4
-FILE_NAME_1=3524;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Fddrinput.py;0;4
-FILE_NAME_2=2339;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Frenderer.py;0;4
-FILE_NAME_3=3865;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Ftetris_shape.py;0;4
+current_page=0
+FILE_NAME_0=9954;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Ftetris.py;0;4
+FILE_NAME_1=913;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Fddrinput.py;0;4
+FILE_NAME_2=3130;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Frenderer.py;0;4
+FILE_NAME_3=1953;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Ftetris_shape.py;0;4
 FILE_NAME_4=558;Python;0;EUTF-8;0;1;0;%2Fhome%2Fpsteffensen%2FDocuments%2FPython%2FBurton-Conner-Tetris-Battle-master%2Futil.py;0;4
 
 [build-menu]

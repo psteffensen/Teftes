@@ -20,7 +20,7 @@
 
 from numpy import zeros
 
-import pygame
+import pygame, random, glob
 from pygame.locals import Color
 
 import util
@@ -43,251 +43,112 @@ class PygameGoodRenderer(Renderer):
   Based heavily off of PygameRenderer in SmootLight.  Renders Tetris to a 
   pygame Window.
   """
-
-  DISPLAY_SIZE = (1280,720)
-  OFFSET = (220, 100)
-  SCALE = 30 
-  RADIUS = 6
-  GAP = 8
+  #MAXX = 10
+  #MAXY = 20
+  #NRPLAYERS = 2 #Number of players
+  #DISPLAY_SIZE = (800,480)
   
-  def __init__(self):
+
+  def __init__(self, DISPLAY_SIZE):
     pygame.init()
+    self.DISPLAY_SIZE = DISPLAY_SIZE
+    #self.screen = pygame.display.set_mode(self.DISPLAY_SIZE)
     self.screen = pygame.display.set_mode(self.DISPLAY_SIZE)
-    self.background = pygame.Surface(self.screen.get_size())
+    #self.background = pygame.Surface(self.screen.get_size())
+    self.background = pygame.Surface(self.DISPLAY_SIZE)
     self.background = self.background.convert()
     self.background.fill(Color(0,0,0))
 
+  def load_theme(self, theme = 'RussianTheme'):
+    # Choose random background in theme folder
+    types = ['jpg','jpeg','png']
+    backgrounds = []
+    flat_list = []
+    for t in types:
+        backgrounds.append(glob.glob('./Themes/' + str(theme) + '/*.' + str(t))) #get name of pictures in theme folder
+    for sublist in backgrounds: # Change from list of lists to flat list.
+        for item in sublist:
+            flat_list.append(item)
+    background = random.choice(flat_list) 
+    self.bg = pygame.image.load(background)
+    self.bg = pygame.transform.scale(self.bg, self.DISPLAY_SIZE)
+    
+    #Load font
+    self.font = pygame.font.Font('./Themes/' + str(theme) + '/' + 'troika.otf', 40)
+    
+
   def render_game(self, game_board):
-    #print game_board
+    #self.new_game = game_board[(2,"new_game")] 
+    #print "New game is " + str(self.new_game) 
+    #if self.new_game is True:
+    #    self.load_theme(theme = 'RussianTheme')
+    #    new_game = False
+
+    self.MAXX = game_board["max_x"]
+    self.MAXY = game_board["max_y"]
+    self.NRPLAYERS = game_board["nr_players"]
+    
+    self.SCALE = int(self.DISPLAY_SIZE[1]/(self.MAXY+3+3)) # 18 squares board area plus tre on top and buttom
+    #RADIUS = 6
+    self.GAP = (self.DISPLAY_SIZE[0]/self.SCALE-self.MAXX*self.NRPLAYERS)/(self.NRPLAYERS+1)
+    self.OFFSET = ((self.DISPLAY_SIZE[0]-(self.MAXX*self.SCALE*self.NRPLAYERS+self.GAP*self.SCALE*(self.NRPLAYERS-1)))/2, 50)
+      
+    #Draw background
     self.background.fill(Color(0,0,0))
-    x0 = self.OFFSET[0] - 1
-    y0 = self.OFFSET[1] - 1
-    x1 = self.OFFSET[0] + 10*self.SCALE
-    y1 = self.OFFSET[1] + 20*self.SCALE - 1
-    b2 = self.SCALE * (10 + self.GAP) #x offset for second board
-
-    font = pygame.font.Font('Pacifico.ttf', 42)
-
-    for n in [0,1]:
+    self.background.blit(self.bg, (0, 0))
+      
+    #Draw game_board
+    board_dist = self.SCALE * (self.MAXX + self.GAP) #x offset for second board
+    x = []
+    y = []
+    b = []
+    for player in range(self.NRPLAYERS):
+        x.append(self.OFFSET[0]+player*self.MAXX*self.SCALE+player*self.GAP*self.SCALE)
+        y.append(self.OFFSET[1])
+        
+    for n in range(self.NRPLAYERS):
+        pygame.draw.rect(self.background, (0,0,0), [x[n],y[n],self.MAXX*self.SCALE,self.MAXY*self.SCALE])
+    
+    for n in range(self.NRPLAYERS):
       if (n,"score") in game_board:
         score = game_board[(n,"score")]
         score_string = "Score: %d" % (score,)
-        text = font.render(score_string, 1, (240,220,70))
-        textpos = (x0 + self.SCALE*3 + b2*n - 15,y1 - self.SCALE- 35)
+        text = self.font.render(score_string, 1, (240,220,70))
+        textpos = (x[0] + self.SCALE*0 + board_dist*n,y[1] + self.SCALE*1)
         self.background.blit(text, textpos)
-
-    if (2,"level") in game_board:
-      level = game_board[(2,"level")]
-      level_string = "Level: %d" % (level,)
-      text = font.render(level_string, 1, (180,180,180))
-      textpos = (x0 + self.SCALE * 5 + 210, y0 - self.SCALE * 0)
-      self.background.blit(text, textpos)
-
-    if (2,"time_left") in game_board:
-      time = game_board[(2,"time_left")]
-      time_string = "Time left:"
-      text = font.render(time_string, 1, (180,180,180))
-      textpos = (x0 + self.SCALE * 5 + 190, y0 - self.SCALE * -3)
-      self.background.blit(text, textpos)
-      
-    if (2,"time_left") in game_board:
-      time = game_board[(2,"time_left")]
-      time_string = "%d" % (round(time),)
-      text = font.render(time_string, 1, (180,180,180))
-      textpos = (x0 + self.SCALE * 5 + 245, y0 - self.SCALE * -4)
-      self.background.blit(text, textpos)
-    
-    line_endpoints = [((x0,y0), (x0,y1-self.SCALE*2)),  ((x1,y1-self.SCALE*2), (x1,y0)), ((x1,y0), (x0,y0)), ((x0,y1 - self.SCALE*2), (x1,y1 - self.SCALE*2))]
-    for p1,p2 in line_endpoints:
-      pygame.draw.line(self.background, self.color_deref("grey  "), p1, p2, 5)
-      pygame.draw.line(self.background, self.color_deref("grey"), (p1[0]+b2,p1[1]),(p2[0]+b2,p2[1]), 5)
-
-    for (x,y) in game_board:
-      if y not in ["level","time_left","score"]:
-        disp_x = x
-        if x >= 10:
-          disp_x+=self.GAP
-        pygame.draw.rect(self.background, self.color_deref(game_board[(x,y)]), 
-            (self.OFFSET[0] + disp_x*self.SCALE, self.OFFSET[1] + y*self.SCALE, self.SCALE-1, self.SCALE-1))
         
-    # Nextshape #rect(Surface, color, Rect, width=0)
+    #Draw grid
+    if "max_x" in game_board and "max_y" in game_board:
+        max_y = game_board["max_y"]
+        max_x = game_board["max_x"]
+        grid_color = (20,20,20)
+        for player in range(self.NRPLAYERS):
+            for line in range(max_x):
+                pygame.draw.line(self.background, grid_color, (x[0]+player*board_dist+line*self.SCALE,y[0]), (x[0]+player*board_dist+line*self.SCALE,y[0]+max_y*self.SCALE),1)
+            for line in range(max_y):
+                pygame.draw.line(self.background, grid_color, (x[0]+player*board_dist,y[0]+line*self.SCALE), (x[0]+max_x*self.SCALE+player*board_dist,y[0]+line*self.SCALE),1)
+
+        #Draw board frame
+        for player in range(self.NRPLAYERS):
+            pygame.draw.line(self.background, self.color_deref("grey"), (x[0]+player*board_dist, y[0]),(x[0]+player*board_dist+max_x*self.SCALE, y[0]),3) #top line
+            pygame.draw.line(self.background, self.color_deref("grey"), (x[0]+player*board_dist, y[0]+max_y*self.SCALE),(x[0]+player*board_dist+max_x*self.SCALE, y[0]+max_y*self.SCALE),3) #bottom line
+            pygame.draw.line(self.background, self.color_deref("grey"), (x[0]+player*board_dist, y[0]),(x[0]+player*board_dist, y[0]+max_y*self.SCALE),3) #left line
+            pygame.draw.line(self.background, self.color_deref("grey"), (x[0]+player*board_dist+max_x*self.SCALE, y[0]),(x[0]+player*board_dist+max_x*self.SCALE, y[0]+max_y*self.SCALE),3) #right line
     
-        
+    #Draw blocks
+    if "board_landed" in game_board:
+        for n in range(self.NRPLAYERS):
+            for (xx,yy) in game_board["board_landed"]:
+                print str(xx+n*max_x) + ', ' + str(yy) + ' ' + game_board["board_landed"][(xx,yy)]
+                pygame.draw.rect(self.background, self.color_deref(game_board["board_landed"][(xx,yy)]), (self.OFFSET[0] + xx*self.SCALE+n*max_x*self.SCALE, self.OFFSET[1] + yy*self.SCALE, self.SCALE-1, self.SCALE-1))
+    
+    if "blocks" in game_board:
+        for n in range(self.NRPLAYERS):
+            for block in game_board["blocks"]:
+                if block.y >= 0:
+                    pygame.draw.rect(self.background, self.color_deref(block.color), (self.OFFSET[0] + block.x*self.SCALE+n*max_x*self.SCALE, self.OFFSET[1] + block.y*self.SCALE, self.SCALE-1, self.SCALE-1))
+         
+                
     self.screen.blit(self.background, (0,0))
     pygame.display.flip()
-     
-class PygameRenderer(Renderer):
- 
-  """
-  Based heavily off of PygameRenderer in SmootLight.  Renders Tetris to a 
-  pygame Window.
-  """
-
-  DISPLAY_SIZE = (1500,1500)
-  OFFSET = (50, 50)
-  SCALE = 20 
-  RADIUS = 6
-  
-  def __init__(self):
-    pygame.init()
-    self.screen = pygame.display.set_mode(self.DISPLAY_SIZE)
-    self.background = pygame.Surface(self.screen.get_size())
-    self.background = self.background.convert()
-    self.background.fill(Color(0,0,0))
-
-  def render_game(self, game_board):
-    self.background.fill(Color(0,0,0))
-    x0 = self.OFFSET[0] - self.SCALE/2 - 3
-    y0 = self.OFFSET[1] - 10
-    x1 = self.OFFSET[0]+8 + 9*self.SCALE
-    y1 = self.OFFSET[1]+8 + 19*self.SCALE
-    b2 = self.SCALE * 13 #x offset for second board
-    line_endpoints = [((x0,y0), (x0,y1)), ((x0,y1), (x1,y1)), ((x1,y1), (x1,y0)), ((x1,y0), (x0,y0)),
-                      ((x0,y1 - 16), (x1,y1 - 16)), ((x0,y1 - 31), (x1,y1 - 31))]
-    for p1,p2 in line_endpoints:
-      pygame.draw.line(self.background, self.color_deref("white"), p1, p2)
-      pygame.draw.line(self.background, self.color_deref("white"), (p1[0]+b2,p1[1]),(p2[0]+b2,p2[1]))
-
-    x_mid = (x0+x1)/2 + self.SCALE
-    pygame.draw.line(self.background, self.color_deref("white"), (x_mid,y1 - 16),(x_mid,y1 - 31))
-    pygame.draw.line(self.background, self.color_deref("white"), (x_mid+b2,y1 - 16),(x_mid+b2,y1 - 31))
-
-    for (x,y) in game_board:
-      disp_x = x
-      if x >= 10:
-        disp_x+=3
-      pygame.draw.circle(self.background, self.color_deref(game_board[(x,y)]), 
-          (self.OFFSET[0] + disp_x*self.SCALE, self.OFFSET[1] + y*self.SCALE), self.RADIUS)
-      
-    self.screen.blit(self.background, (0,0))
-    pygame.display.flip()
-
-class LedRenderer(Renderer):
-  """
-  Renderer for the LEDs.  Based heavily on IndoorRenderer in Smootlight and 
-  general Smootlight abstraction patterns
-  """
-  POWER_SUPPLY_IPS = ['10.32.0.32','10.32.0.32', '10.32.0.31',
-                      '10.32.0.31','10.32.0.35','10.32.0.35','10.32.0.33','10.32.0.33'] #TODO: Fill in
-  SOCK_PORT = 6038
-  sockets = {}
- 
-  def render_game(self, game_board):
-    packets = self.map_to_packets(game_board)
-    for (ip, port) in packets:
-      packet = packets[(ip, port)]
-      if not ip in self.sockets:
-        self.sockets[ip] = util.getConnectedSocket(ip, self.SOCK_PORT)
-      final_packet = util.composePixelStripPacket(packet, port) 
-      try:
-        if self.sockets[ip] != None:
-          self.sockets[ip].send(final_packet, 0x00)
-      except:
-        print 'failure sending packet'
-
-  def old_render_game(self, game_board):
-    packets = self.map_to_packets(game_board)
     
-    packets_with_destinations = zip(self.POWER_SUPPLY_IPS, packets)
-    for (ip, (port, packet)) in packets_with_destinations:
-      if not ip in self.sockets:
-        self.sockets[ip] = util.getConnectedSocket(ip, self.SOCK_PORT)
-      final_packet = util.composePixelStripPacket(packet, port) 
-      try:
-        if self.sockets[ip] != None:
-          self.sockets[ip].send(final_packet, 0x00)
-      except:
-        print 'failure sending packet'
-        
-  def color_deref(self, color):
-    return Color(color)[0:3]
-    
-  def fake_map_to_packets(self, game_board):
-    strip = zeros((50,3), 'ubyte')
-    strip[:] = (255,255,0)
-    return [(1, strip), (2, strip)] * 4
-
-  def map_to_packets(self, game_board):
-    #start (x,y), dir (x,y), 
-    boards = [((10, 4), (1, -1), '10.32.0.33', 2),  #BOARD 1 TOP
-              ((10, 5), (1, 1), '10.32.0.33', 1),   #BOARD 1 MIDDLE UP
-              ((10,14), (1, -1), '10.32.0.35', 2),  #BOARD 1 MIDDLE LOW
-              ((10,15), (1, 1), '10.32.0.35', 1),   #BOARD 1 BOTTOM
-              ((9, 4), (-1, -1), '10.32.0.31', 2),
-              ((9, 5), (-1, 1), '10.32.0.31', 1),
-              ((9, 10), (-1, 1), '10.32.0.32', 1), #WIRED BACKWARDS
-              ((9, 19), (-1, -1), '10.32.0.32', 2)] #WIRED BACKWARDS
-    width = 10
-    ret = {}
-    for (start_x, start_y), (dir_x, dir_y), ip, port in boards:
-      strip = zeros((50, 3), 'ubyte')
-      index = 0
-      for y in range(start_y, start_y+(5*dir_y), dir_y):
-        #line is running other direction if we aren't the start_line xor we are going backwards
-        #anyway
-        if (dir_x == 1):
-          line_diff = bool((y-start_y) % 2) 
-          if line_diff:
-            act_dir_x = dir_x * -1
-            act_start_x = start_x + width - 1
-          else:
-            act_dir_x = dir_x
-            act_start_x = start_x
-        else:
-          line_diff = bool((y-start_y) % 2)
-          if line_diff:
-            act_dir_x = 1
-            act_start_x = start_x - (width - 1)
-          else:
-            act_start_x = start_x
-            act_dir_x = dir_x
-        for x in range(act_start_x, act_start_x+(width*act_dir_x), act_dir_x):
-          if (x,y) in game_board:
-            strip[index] = self.color_deref(game_board[(x,y)]) 
-          index += 1
-      assert index == 50
-      ret[(ip, port)] = strip
-    return ret
-
-
-    
-  def old_map_to_packets(self, game_board):
-    """
-    Performs the mapping between a game_board and a list of (port,packet) pairs.  The port,packet
-    pairs should line up with the ip's in IP_ADDRESSES
-    """
-    #This is hardcoded, mostly because I'm curious of the complexity
-    packets = []
-    board_x_min = 0
-    board_x_max = 9 
-    section_width = 10
-    section_height = 5
-    board_x_min = 0
-    #left board
-    for board_y_min in [14, 9, 4, -1]:
-      strip = zeros((50,3),'ubyte')
-      index = 0
-      for y in range(board_y_min+section_height, board_y_min, -1): #for each strip
-        strand_dir = -1 if y % 5 % 2 == 0 else 1 #direction alternates within strip
-        left_x = board_x_min+section_width-1 if strand_dir < 0 else board_x_min
-        right_x = board_x_min-1 if strand_dir < 0 else board_x_min+section_width
-        for x in range(left_x, right_x, strand_dir):
-          if (x,y) in game_board:
-            strip[index] = self.color_deref(game_board[(x,y)]) 
-          index += 1
-      packets.append((1+(len(packets) % 2), strip)) #port alternates by strip
-    #right board:
-    board_x_min = 10
-    for board_y_min in [15, 10, 5, 0]:
-      strip = zeros((50,3),'ubyte')
-      index = 0
-      for y in range(board_y_min, board_y_min + section_height ): #for each strip
-        strand_dir = 1 if y % 5 % 2 == 0 else -1 #direction alternates within strip
-        left_x = board_x_min+section_width-1 if strand_dir < 0 else board_x_min
-        right_x = board_x_min-1 if strand_dir < 0 else board_x_min+section_width
-        for x in range(left_x, right_x, strand_dir):
-          if (x,y) in game_board:
-            strip[index] = self.color_deref(game_board[(x,y)]) 
-          index += 1
-      packets.append((1+(len(packets) % 2), strip)) #port alternates by strip
-    return packets

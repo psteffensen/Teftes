@@ -31,8 +31,6 @@ from time import sleep, time
 import random
 import sys
 from renderer import PygameGoodRenderer
-from renderer import PygameRenderer
-from renderer import LedRenderer
 from tetris_shape import *
 from ddrinput import DdrInput
 from ddrinput import DIRECTIONS
@@ -40,17 +38,16 @@ import pygame
 import pdb
 
 
-
-TIME_LIMIT = 5 * 60  #seconds
 LINES_TO_ADVANCE = 10 #num lines needed to advance to next  
-LEVEL_SPEEDS = range(500,200,-20)
+LEVEL_SPEEDS = range(500,50,-50)
 
+NRPLAYERS = 3
 MAXX = 10
-MAXY = 18
+MAXY = 20
 (LEFT, RIGHT, UP, DOWN, DROP, DIE) = range(6) 
 
 COLORS = ["orange", "red", "green", "blue", "purple", "yellow", "magenta"]
-LEVEL_COLORS = ["red", "orange", "yellow", "green", "blue", "purple"]
+LEVEL_COLORS = ["red", "orange", "yellow", "green", "blue", "purple","orange","magenta", "white"]
 
 #pygame.init()
 #BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
@@ -70,7 +67,7 @@ class Board():
     def clear(self):
         self.landed = {}
       
-    def receive_lines(self, num_lines):
+    def receive_lines(self, num_lines): #Lines received when opposite player gets more than one line.
         #shift lines up
         for y in range(self.max_y-num_lines):
             for x in xrange(self.max_x):
@@ -139,7 +136,7 @@ class Board():
         # return the number of rows deleted.        
         return rows_deleted
 
-    def check_block( self, (x, y) ):
+    def check_block(self, (x, y) ):
         """
         Check if the x, y coordinate can have a block placed there.
         That is; if there is a 'landed' block there or it is outside the
@@ -206,6 +203,8 @@ class Player():
                             self.score / LINES_TO_ADVANCE >= self.gs.level+1 ):
                             self.gs.level+=1
                             print "level",self.gs.level
+                            print LEVEL_SPEEDS
+                            print "Level right now:", LEVEL_SPEEDS[self.gs.level]
                             self.gs.delay = LEVEL_SPEEDS[self.gs.level]
                         
                         # Signal that the shape has 'landed'
@@ -248,11 +247,12 @@ class TetrisGame(object):
     #one-time initialization for gui etc
     def __init__(self):
         print "initialize tetris"
-        self.start_time = None
-        self.gui = [PygameGoodRenderer(), LedRenderer()]
+        self.DISPLAY_SIZE = (800, 480)
+        self.gui = PygameGoodRenderer(self.DISPLAY_SIZE)
         self.input = DdrInput()
         #self.DISPLAYSURF = pygame.display.toggle_fullscreen()
-        self.DISPLAYSURF = pygame.display.set_mode((1280, 720))
+        #self.DISPLAYSURF = pygame.display.set_mode((1280, 720))
+        self.DISPLAYSURF = pygame.display.set_mode(self.DISPLAY_SIZE)
         self.gameState = GameState()
         while True:
             self.init_game()
@@ -261,13 +261,15 @@ class TetrisGame(object):
     #initializes each game
     def init_game(self):
         print "init next game"
-        self.boards = [Board(MAXX,MAXY),Board(MAXX,MAXY)]
-        self.players = [None,None]
-        self.board_animation(0,"up_arrow")
-        self.board_animation(1,"up_arrow")
+        self.boards = [] #reset boards
+        self.players = [] #reset players
+        for player in range(NRPLAYERS):
+            self.boards.append(Board(MAXX,MAXY))
+            self.players.append(None)
+            self.board_animation(player,"up_arrow")
         self.shapes = GenerateShapes(self.gameState)
-        self.start_time = None
         self.input.reset()
+        self.gui.load_theme(theme = "RussianTheme")
         self.update_gui()
         self.handle_input() #this calls all other functions, such as add_player, start_game
 
@@ -288,21 +290,21 @@ class TetrisGame(object):
         self.boards[1].clear()
         self.gameState.state = "playing"
         self.update_gui()
-        self.start_time = time()
         self.drop_time = time()
         self.gravity()
+        pygame.mixer.music.load('session.mp3')
+        pygame.mixer.music.play(-1)
+        
 
     def handle_input(self):
-        
         game_on = True
         t = 0
         while game_on:
             t+=1
-            
-            if (self.gameState.state=="ending") or (self.gameState.state=="playing" and time()-self.start_time > TIME_LIMIT):
+            if (self.gameState.state=="ending"):
                 self.end_game()
                 game_on = False
-                return
+            
             if self.gameState.state=="playing" and time()-self.drop_time > self.gameState.delay/1000.0:
                 self.gravity()
                 self.drop_time = time()
@@ -346,10 +348,10 @@ class TetrisGame(object):
                 p.handle_move(DOWN)
             
     def update_gui(self):
-        d = self.to_dict()
+        #d = self.to_dict()
         #[gui.render_game(d) for gui in self.gui]
         #pygame.display.update()
-        self.gui[0].render_game(self.to_gui_dict())
+        self.gui.render_game(self.to_gui_dict())
 
     def end_game(self):
         if self.gameState.winner!=None:
@@ -370,6 +372,7 @@ class TetrisGame(object):
         del self.gameState
         self.gameState = GameState()
         self.animate_ending(winner_id)
+        pygame.mixer.music.stop()
 
     def board_animation(self, board_id, design, color="green"):
         b = self.boards[board_id]
@@ -414,7 +417,7 @@ class TetrisGame(object):
 
     def to_dict(self):
         d = {}
-        for n in range(2):
+        for n in range(NRPLAYERS):
             board = self.boards[n]
             offset = n*MAXX
             
@@ -443,51 +446,38 @@ class TetrisGame(object):
 
                 #level
                 level = self.gameState.level
-                d[(level+offset,MAXY)] = LEVEL_COLORS[level]
-
-                #time
-                if self.start_time!=None:
-                    time_left = (self.start_time + TIME_LIMIT - time()) #seconds left
-                    for i in range(TIME_LIMIT/60): #0,1,2,3 (minutes)
-                        if time_left/60 >= i:
-                            seconds = time_left - 60*i # is in .5-1 secs, etc
-                            if not (.5<seconds<1.0 or 1.5<seconds<2.0 or 2.5<seconds<3.0):
-                                coord = (MAXX-1-i + offset, MAXY)
-                                d[coord] = "white"
+                #d[(level+offset,MAXY)] = LEVEL_COLORS[level]
                         
         return d
 
     def to_gui_dict(self):
         d = {}
-        if self.start_time!=None:
-            d[(2,"level")] = self.gameState.level
-            d[(2,"time_left")] = self.start_time + TIME_LIMIT - time()
+        d["max_y"] = MAXY
+        d["max_x"] = MAXX
+        d["nr_players"] = NRPLAYERS
+        d["level"] = self.gameState.level
+        
                 
-        for n in range(2):
+        for n in range(NRPLAYERS):
             board = self.boards[n]
-            offset = n*MAXX
             
             #blocks
-            for (x,y) in board.landed:
-                d[(x+offset,y)] = board.landed[(x,y)]
+            d["board_landed"] = board.landed
 
             if self.players[n]!=None:
                 p = self.players[n]
                 #score
-                d[(n,"score")] = p.score
+                d["score"] = p.score
 
                 #shapes
                 if p.shape:
-                    blocks = p.shape.blocks
-                    for b in blocks:
-                        if b.y >= 0:
-                            d[(b.x+offset*n,b.y)] = b.color
+                    d["blocks"] = p.shape.blocks
                             
                 #next shape
-                if p.nextshape:
-                    nextshape = p.nextshape.blocks
-                    for ns in nextshape:
-                        d[(ns.x+(offset*n),ns.y-3)] = ns.color
+                #if p.nextshape:
+                    #nextshape = p.nextshape.blocks
+                    #for ns in nextshape:
+                        #d[(ns.x+(offset*n),ns.y-2.3)] = ns.color
          
         return d
 

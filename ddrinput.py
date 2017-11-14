@@ -23,7 +23,6 @@ import time
 
 JOY_EVENT = 7
 JOY_EVENT_2 = 10
-JOY_EVNNT_2_1 = 11
 KEY_EVENT = 2
 KEY_RELEASE = 3
 X = 0
@@ -83,7 +82,7 @@ class DdrInput(object):
     """
     event = pygame.event.poll()
     if event.type != 0:
-        print event
+        pass #print event
         
     player_move = None
     if event.type == JOY_EVENT_2:
