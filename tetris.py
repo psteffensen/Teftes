@@ -153,54 +153,66 @@ class Board():
 #represents a player. each player has a board, other player's board,
 #current shape, score, etc
 class Player():
-    def __init__(self, player_id, gs, myBoard, otherBoard, shapes):
+    def __init__(self, player_id, gs, boards, other_players, shapes):
+        self.other_players = other_players
         self.shapes = shapes
         self.id = player_id
-        self.board = myBoard
-        self.other_board = otherBoard
+        self.boards = boards
         self.score = 0
+        self.lines = 0
         self.gs = gs
         self.shape_nr = 0
         self.the_shape = self.shapes.get_shape(self.shape_nr)
-        self.shape = self.the_shape.check_and_create(self.board)
+        self.shape = self.the_shape.check_and_create(self.boards[self.id])
         self.the_nextshape = self.shapes.get_shape(self.shape_nr+1)
-        self.nextshape = self.the_nextshape.check_and_create(self.board)
+        self.nextshape = self.the_nextshape.check_and_create(self.boards[self.id])
         
     def handle_move(self, direction):
         #if you can't move then you've hit something
         if self.shape:
             if direction==UP:
                 self.shape.rotate(clockwise=False)
+                print "handle_move up"
             else:
-                if not self.shape.move( direction ):
+                if not self.shape.move(direction):
                     # if you're heading down then the shape has 'landed'
                     if direction == DOWN:
-                        points = self.board.check_for_complete_row(
-                            self.shape.blocks)
+                        rows_deleted = self.boards[self.id].check_for_complete_row(self.shape.blocks)
                         self.shape_nr += 1
                         self.the_shape = self.shapes.get_shape(self.shape_nr)
-                        self.shape = self.the_shape.check_and_create(self.board)
+                        self.shape = self.the_shape.check_and_create(self.boards[self.id])
                         self.the_nextshape = self.shapes.get_shape(self.shape_nr+1)
-                        self.nextshape = self.the_nextshape.check_and_create(self.board)
+                        self.nextshape = self.the_nextshape.check_and_create(self.boards[self.id])
                         
-                        self.score += points
-                        if self.gs.num_players == 2:
-                            if points > 1:
-                                self.other_board.receive_lines(points-1) 
+                        self.lines += rows_deleted
+                        print rows_deleted
+                        if rows_deleted is 1:
+                            self.score += 10
+                        elif rows_deleted is 2:
+                            self.score += 25
+                        elif rows_deleted is 3:
+                            self.score += 40
+                        elif rows_deleted is 4:
+                            self.score += 55
+                        
+                        # Give packages to the other players
+                        if self.gs.num_players >= 2:
+                            if rows_deleted > 1:
+                                for op in self.other_players:
+                                    self.boards[op].receive_lines(rows_deleted-1) 
            
                         # If the shape returned is None, then this indicates that
                         # that the check before creating it failed and the
                         # game is over!
                         if self.shape is None:
                             self.gs.state = "ending" #you lost!
-                            if self.gs.num_players == 2:
-                                self.gs.winner = (self.id + 1) % 2
+                            if self.gs.num_players > 2:
+                                self.gs.winner = (self.id + 1) % 2 #Must be updated for more than two players.
                             else:
                                 self.gs.winner = self.id
                                 
                         # do we go up a level?
-                        if (self.gs.level < len(LEVEL_SPEEDS)-1 and 
-                            self.score / LINES_TO_ADVANCE >= self.gs.level+1 ):
+                        if (self.gs.level < len(LEVEL_SPEEDS)-1 and self.lines / LINES_TO_ADVANCE >= self.gs.level+1 ):
                             self.gs.level+=1
                             print "level",self.gs.level
                             print LEVEL_SPEEDS
@@ -247,12 +259,11 @@ class TetrisGame(object):
     #one-time initialization for gui etc
     def __init__(self):
         print "initialize tetris"
-        self.DISPLAY_SIZE = (800, 480)
-        self.gui = PygameGoodRenderer(self.DISPLAY_SIZE)
+        #self.DISPLAY_SIZE = (1920, 1080) #Manually set screensize
+        self.gui = PygameGoodRenderer()
         self.input = DdrInput()
-        #self.DISPLAYSURF = pygame.display.toggle_fullscreen()
-        #self.DISPLAYSURF = pygame.display.set_mode((1280, 720))
-        self.DISPLAYSURF = pygame.display.set_mode(self.DISPLAY_SIZE)
+        
+        self.gui.SetupScreen()
         self.gameState = GameState()
         while True:
             self.init_game()
@@ -274,11 +285,14 @@ class TetrisGame(object):
         self.handle_input() #this calls all other functions, such as add_player, start_game
 
 
-    def add_player(self,num): # 0=left, 1=right
+    def add_player(self,num): # num is player number
         print "adding player",num
         if self.players[num]==None:
             self.boards[num].clear()
-            p = Player(num, self.gameState, self.boards[num], self.boards[(num+1)%2],self.shapes)
+            other_players = range(NRPLAYERS)
+            other_players.pop(num) #all other players
+            p = Player(num, self.gameState, self.boards, other_players, self.shapes)
+            print "Player" + str(num) + "added"
             self.players[num] = p
             self.board_animation(num,"down_arrow")
             self.gameState.num_players+=1
@@ -286,14 +300,15 @@ class TetrisGame(object):
         
     def start_game(self):
         print "start game"
-        self.boards[0].clear()
-        self.boards[1].clear()
+        for n in range(NRPLAYERS):
+            self.boards[n].clear()
         self.gameState.state = "playing"
         self.update_gui()
         self.drop_time = time()
         self.gravity()
-        pygame.mixer.music.load('session.mp3')
+        pygame.mixer.music.load('./Themes/RussianTheme/session.mp3')
         pygame.mixer.music.play(-1)
+        
         
 
     def handle_input(self):
@@ -323,7 +338,7 @@ class TetrisGame(object):
                     if self.players[player]!=None:
                         #DROP is only for debugging purposes for now, to make the game end.
                         if direction == DROP:
-                            while self.players[player].handle_move( DOWN ):
+                            while self.players[player].handle_move(DOWN):
                                 pass
                         else:
                             self.players[player].handle_move(direction)
@@ -348,9 +363,6 @@ class TetrisGame(object):
                 p.handle_move(DOWN)
             
     def update_gui(self):
-        #d = self.to_dict()
-        #[gui.render_game(d) for gui in self.gui]
-        #pygame.display.update()
         self.gui.render_game(self.to_gui_dict())
 
     def end_game(self):
@@ -415,41 +427,6 @@ class TetrisGame(object):
         
         return shapes[design]
 
-    def to_dict(self):
-        d = {}
-        for n in range(NRPLAYERS):
-            board = self.boards[n]
-            offset = n*MAXX
-            
-            #blocks
-            for (x,y) in board.landed:
-                d[(x+offset,y)] = board.landed[(x,y)]
-
-            if self.players[n]!=None:
-                p = self.players[n]
-                
-                #shapes
-                if p.shape:
-                    blocks = p.shape.blocks
-                    for b in blocks:
-                        if b.y >= 0:
-                            d[(b.x+offset*n,b.y)] = b.color
-            
-                #score  
-                score = p.score
-                for i in range(10):
-                    bit = score%2
-                    score = score>>1
-                    coord = (MAXX-1-i + offset, MAXY+1)
-                    if bit:
-                        d[coord] = "yellow"
-
-                #level
-                level = self.gameState.level
-                #d[(level+offset,MAXY)] = LEVEL_COLORS[level]
-                        
-        return d
-
     def to_gui_dict(self):
         d = {}
         d["max_y"] = MAXY
@@ -459,26 +436,23 @@ class TetrisGame(object):
         
                 
         for n in range(NRPLAYERS):
-            board = self.boards[n]
-            
             #blocks
-            d["board_landed"] = board.landed
+            d["board_landed_player" + str(n)] = self.boards[n].landed
 
             if self.players[n]!=None:
                 p = self.players[n]
                 #score
-                d["score"] = p.score
-
+                d["score_player" + str(n)] = p.score
+                d["lines_player" + str(n)] = p.lines
+                
                 #shapes
                 if p.shape:
-                    d["blocks"] = p.shape.blocks
+                    d["blocks_player" + str(n)] = p.shape.blocks
                             
                 #next shape
-                #if p.nextshape:
-                    #nextshape = p.nextshape.blocks
-                    #for ns in nextshape:
-                        #d[(ns.x+(offset*n),ns.y-2.3)] = ns.color
-         
+                if p.nextshape:
+                    d["nextshape_player" + str(n)] = p.nextshape.blocks
+                   
         return d
 
             

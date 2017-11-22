@@ -21,25 +21,47 @@
 import pygame
 import time
 
+#Joypad left hand
 JOY_EVENT = 7
 JOY_EVENT_2 = 10
 KEY_EVENT = 2
 KEY_RELEASE = 3
 X = 0
 Y = 1
-(LEFT, RIGHT, UP, DOWN, DROP, DIE, RELEASE) = range(7) 
+
+
+#Keys player 0
 KEY_LEFT = 276
 KEY_UP = 273
 KEY_DOWN = 274
 KEY_RIGHT = 275
-KEY_A = 97
-KEY_S = 115
-KEY_D = 100
-KEY_W = 119
 KEY_SPACE = 32
-KEY_X = 120
+
+#Keys player 1
+KEY_A = 97 #a left
+KEY_D = 100 #d right
+KEY_W = 119 #w up
+KEY_S = 115 #s down
+KEY_X = 120 #x drop
+
+#Keys player 2
+KEY_F = 102 #left
+KEY_H = 104 #right
+KEY_T = 116 #up
+KEY_G = 103 #down
+KEY_B = 98 #drop
+
+#Keys player 3
+KEY_J = 106 #left
+KEY_L = 108 #right
+KEY_I = 105 #up
+KEY_K = 107 #down
+KEY_COMMA = 44 #drop
+
+#Keys general
 KEY_ESC = 27
 
+(LEFT, RIGHT, UP, DOWN, DROP, DIE, RELEASE) = range(7) 
 DIRECTIONS = {0:'LEFT', 1:'RIGHT',  2:'UP', 3:'DOWN', 5:'DROP', 6:'DIE'}
 class DdrInput(object):
   """
@@ -82,7 +104,8 @@ class DdrInput(object):
     """
     event = pygame.event.poll()
     if event.type != 0:
-        pass #print event
+        #pass 
+        print event
         
     player_move = None
     if event.type == JOY_EVENT_2:
@@ -128,7 +151,6 @@ class DdrInput(object):
       
       try:
         if event.button == 2:
-          print event.button
           player_move = DROP
       except:
           print "Button"
@@ -153,39 +175,82 @@ class DdrInput(object):
 
   def handle_key_event(self, event):
     if event.key == KEY_LEFT:
-      player_index = 1
-      player_move = LEFT
-    elif event.key == KEY_RIGHT:
-      player_index = 1
-      player_move = RIGHT
-    elif event.key == KEY_DOWN:
-      player_index = 1
-      player_move = DOWN
-    elif event.key == KEY_UP:
-      player_index = 1
-      player_move = UP
+        player_index = 0
+        player_move = LEFT
     elif event.key == KEY_A:
-      player_index = 0
-      player_move = LEFT
+        player_index = 1
+        player_move = LEFT
+    elif event.key == KEY_F:
+        player_index = 2
+        player_move = LEFT
+    elif event.key == KEY_J:
+        player_index = 3
+        player_move = LEFT
+    
+    
+    elif event.key == KEY_RIGHT:
+        player_index = 0
+        player_move = RIGHT
     elif event.key == KEY_D:
-      player_index = 0
-      player_move = RIGHT
-    elif event.key == KEY_S:
-      player_index = 0
-      player_move = DOWN
+        player_index = 1
+        player_move = RIGHT
+    elif event.key == KEY_H:
+        player_index = 2
+        player_move = RIGHT
+    elif event.key == KEY_L:
+        player_index = 3
+        player_move = RIGHT
+    
+    
+    elif event.key == KEY_UP:
+        player_index = 0
+        player_move = UP
     elif event.key == KEY_W:
-      player_index = 0
-      player_move = UP
-    elif event.key == KEY_ESC:
-      player_index = 2
-      player_move = DIE
-    elif event.key == KEY_SPACE:
-      player_index = 1
-      player_move = DROP
-    elif event.key == KEY_X:
-      player_index = 0
-      player_move = DROP
+        player_index = 1
+        player_move = UP
+    elif event.key == KEY_T:
+        player_index = 2
+        player_move = UP
+    elif event.key == KEY_I:
+        player_index = 3
+        player_move = UP
+      
+    
+    elif event.key == KEY_DOWN:
+        player_index = 0
+        player_move = DOWN
+    elif event.key == KEY_S:
+        player_index = 1
+        player_move = DOWN
+    elif event.key == KEY_G:
+        player_index = 2
+        player_move = DOWN
+    elif event.key == KEY_K:
+        player_index = 3
+        player_move = DOWN
 
+    elif event.key == KEY_SPACE:
+        player_index = 0
+        player_move = DROP
+    elif event.key == KEY_X:
+        player_index = 1
+        player_move = DROP
+    elif event.key == KEY_B:
+        player_index = 2
+        player_move = DROP
+    elif event.key == KEY_COMMA:
+        player_index = 3
+        player_move = DROP
+   
+    elif event.key == KEY_ESC:
+        player_index = 1000
+        player_move = DIE
+    else:
+        player_index = None
+        player_move = None
+    
+    
     if event.type == KEY_RELEASE:
       player_move = RELEASE
+    print player_move
     return (player_index, player_move)
