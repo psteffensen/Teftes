@@ -79,20 +79,23 @@ class DdrInput(object):
     Debug mode prints inputs from the ddr pads and also enables the keyboard as an input
     """
     pygame.init() #safe to call multiple times
-    self.init_joysticks()
+    self.totaljoy = self.init_joysticks()
     #This is just so that we can get key presses in the demo.  remove when we plug it into a ui
-    screen = pygame.display.set_mode((640, 480))
+    #screen = pygame.display.set_mode((640, 480))
     self.debug_mode = debug_mode
     self.active_inputs = {}
+    
 
   def init_joysticks(self):
     pygame.joystick.init()
     try: totaljoy = pygame.joystick.get_count()
     except: totaljoy = 0
-    print totaljoy, 'joysticks loaded'
+    #print totaljoy, 'joysticks loaded'
     for i in range(totaljoy):
       m = pygame.joystick.Joystick(i)
       m.init()
+      
+    return totaljoy
 
   def reset(self):
     pygame.event.clear()
@@ -104,8 +107,8 @@ class DdrInput(object):
     """
     event = pygame.event.poll()
     if event.type != 0:
-        #pass 
-        print event
+        pass 
+        #print event
         
     player_move = None
     if event.type == JOY_EVENT_2:
@@ -113,7 +116,8 @@ class DdrInput(object):
     elif event.type == JOY_EVENT:
       player_index, player_move = self.handle_joy_event(event)
       if self.debug_mode:
-        print (player_index, player_move)
+        pass
+        #print (player_index, player_move)
     #debug mode
     if self.debug_mode:
       if event.type == KEY_EVENT or event.type == KEY_RELEASE:
@@ -139,7 +143,7 @@ class DdrInput(object):
             #~ self.active_inputs[player_index] = (fallback_start, start_time, move)
             #~ return (player_index, move)
       return None
-  
+   
   def handle_joy_event(self, event):
       player_index = event.joy
       #there may be a tricky quick way to code this, but this is more readable
@@ -153,7 +157,8 @@ class DdrInput(object):
         if event.button == 2:
           player_move = DROP
       except:
-          print "Button"
+          pass
+          #print "Button"
       
       try:    
         if event.axis == X:
@@ -169,9 +174,90 @@ class DdrInput(object):
         if event.value == 0:
           player_move = RELEASE
       except:
-        print "Axis"
+        pass
+        #print "Axis"
         
       return player_index, player_move
+  
+  '''
+  def handle_joy_event(self, event):
+      player_index = event.joy
+      #there may be a tricky quick way to code this, but this is more readable
+      #value == 0 -> released
+      player_move = None
+      #if event.type == JOY_EVENT_2+1:
+      #  player_move = RELEASE
+      #  return (player_index, player_move)
+      
+      
+        #<Event(10-JoyButtonDown {'joy': 0, 'button': 0})> #Left up
+        #<Event(10-JoyButtonDown {'joy': 0, 'button': 1})> #Left right
+        #<Event(10-JoyButtonDown {'joy': 0, 'button': 2})> #Left Down
+        #<Event(10-JoyButtonDown {'joy': 0, 'button': 3})> #Left Left
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 1.0, 'axis': 0})> # Right right
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 0})>
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 1.0, 'axis': 1})> # Right down
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 1})>
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': -1.000030518509476, 'axis': 0})> #Right left
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 0})>
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': -1.000030518509476, 'axis': 1})> #Right up
+        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 1})>
+      
+      
+      if left_hand_arrows:
+        try:
+          if event.button == 2:
+            player_move = DROP
+        except:
+            pass
+            #print "Button"
+        
+        try:    
+          if event.axis == X:
+            if event.value < 0:
+              player_move = LEFT
+            elif event.value > 0:
+              player_move = RIGHT
+          else:
+            if event.value > 0:
+              player_move = DOWN
+            elif event.value < 0:
+              player_move = UP
+          if event.value == 0:
+            player_move = RELEASE
+        except:
+          pass
+          #print "Axis"
+          
+      
+      elif right_hand_arrows:
+        try:
+          if event.value < 0 and event.axis == 1:
+            player_move = DROP
+        except:
+          pass
+            #print "Button"
+        
+        try:    
+          if event.button == 0:
+              player_move = UP
+          elif event.button == 1:
+              player_move = RIGHT
+          elif event.button == 2:
+              player_move = DOWN
+          elif event.button == 3:
+              player_move = UP
+          elif event.value == 0:
+            player_move = RELEASE
+        except:
+          pass
+          #print "Axis"
+      
+      
+          
+        
+      return player_index, player_move
+  '''  
 
   def handle_key_event(self, event):
     if event.key == KEY_LEFT:
@@ -252,5 +338,5 @@ class DdrInput(object):
     
     if event.type == KEY_RELEASE:
       player_move = RELEASE
-    print player_move
+    #print player_move
     return (player_index, player_move)

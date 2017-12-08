@@ -35,13 +35,12 @@ from tetris_shape import *
 from ddrinput import DdrInput
 from ddrinput import DIRECTIONS
 import pygame
-import pdb
 
 
 LINES_TO_ADVANCE = 10 #num lines needed to advance to next  
 LEVEL_SPEEDS = range(500,50,-50)
 
-NRPLAYERS = 3
+#NRPLAYERS = 2
 MAXX = 10
 MAXY = 20
 (LEFT, RIGHT, UP, DOWN, DROP, DIE) = range(6) 
@@ -205,11 +204,19 @@ class Player():
                         # that the check before creating it failed and the
                         # game is over!
                         if self.shape is None:
-                            self.gs.state = "ending" #you lost!
-                            if self.gs.num_players > 2:
-                                self.gs.winner = (self.id + 1) % 2 #Must be updated for more than two players.
-                            else:
-                                self.gs.winner = self.id
+                            self.gs.active_players.remove(self.id)
+                            if self.gs.num_players >= 2 and len(self.gs.active_players) >= 2:
+                                print "List after pop " + str(self.gs.active_players)
+                                del self
+                                return None
+                            elif self.gs.num_players >= 2 and len(self.gs.active_players) <= 1:
+                                self.gs.winner = self.gs.active_players[0] # winner is last active player
+                                print "List after last pop " + str(self.gs.active_players)
+                                print "winner is " + str(self.gs.winner)
+                                self.gs.state = "ending" #you lost!
+                            else:                                
+                                return ValueError("Did not end correctly!")
+                                #game ends
                                 
                         # do we go up a level?
                         if (self.gs.level < len(LEVEL_SPEEDS)-1 and self.lines / LINES_TO_ADVANCE >= self.gs.level+1 ):
@@ -242,16 +249,16 @@ class GenerateShapes(object):
 #contains variables that are shared between the players:
 #levels, delay time, etc
 class GameState():
-    def __init__(self):
+    def __init__(self, num_players):
         self.shapes = [square_shape, t_shape,l_shape, reverse_l_shape,
                       z_shape, s_shape,i_shape ]
-        self.num_players = 0
         self.level = 0 #levels go 0-9
         self.delay = LEVEL_SPEEDS[0]
         self.state = "waiting" #states: waiting (between games), playing, ending
         self.winner = None #winning player id
-       
-        
+        self.active_players = []
+        self.instruction = False
+        self.num_players = num_players
         
 #runs the overall game. initializes both player and any displays
 class TetrisGame(object):
@@ -262,9 +269,12 @@ class TetrisGame(object):
         #self.DISPLAY_SIZE = (1920, 1080) #Manually set screensize
         self.gui = PygameGoodRenderer()
         self.input = DdrInput()
-        
+        self.num_players = self.input.totaljoy
         self.gui.SetupScreen()
-        self.gameState = GameState()
+        self.gameState = GameState(self.num_players)
+        if self.num_players is 0:
+            self.num_players = 4
+            
         while True:
             self.init_game()
             
@@ -274,35 +284,40 @@ class TetrisGame(object):
         print "init next game"
         self.boards = [] #reset boards
         self.players = [] #reset players
-        for player in range(NRPLAYERS):
+        for player in range(self.num_players):
             self.boards.append(Board(MAXX,MAXY))
             self.players.append(None)
             self.board_animation(player,"up_arrow")
         self.shapes = GenerateShapes(self.gameState)
         self.input.reset()
-        self.gui.load_theme(theme = "RussianTheme")
+        self.gui.load_theme(MAXY, theme = "RussianTheme")
+        self.gui.render_game_init(self.to_gui_dict_init())
+        self.instruction = True
         self.update_gui()
         self.handle_input() #this calls all other functions, such as add_player, start_game
-
+        
 
     def add_player(self,num): # num is player number
         print "adding player",num
         if self.players[num]==None:
             self.boards[num].clear()
-            other_players = range(NRPLAYERS)
+            other_players = range(self.num_players)
             other_players.pop(num) #all other players
             p = Player(num, self.gameState, self.boards, other_players, self.shapes)
             print "Player" + str(num) + "added"
             self.players[num] = p
             self.board_animation(num,"down_arrow")
             self.gameState.num_players+=1
+            self.gameState.active_players.append(num)
             self.update_gui()
         
     def start_game(self):
         print "start game"
-        for n in range(NRPLAYERS):
+        for n in range(self.num_players):
             self.boards[n].clear()
         self.gameState.state = "playing"
+        self.instruction = False
+        self.gui.render_game_init(self.to_gui_dict_init())
         self.update_gui()
         self.drop_time = time()
         self.gravity()
@@ -315,7 +330,7 @@ class TetrisGame(object):
         game_on = True
         t = 0
         while game_on:
-            t+=1
+            t+=1    
             if (self.gameState.state=="ending"):
                 self.end_game()
                 game_on = False
@@ -325,7 +340,7 @@ class TetrisGame(object):
                 self.drop_time = time()
                 if self.gameState.state != "ending":
                     self.update_gui()
-                
+            
             ev = self.input.poll()
             if ev:
                 player,direction = ev
@@ -350,7 +365,7 @@ class TetrisGame(object):
                             self.start_game()
                 
                 self.update_gui()
-         
+            
             elif t%10000==0:
                 t=0
                 self.update_gui()
@@ -363,24 +378,20 @@ class TetrisGame(object):
                 p.handle_move(DOWN)
             
     def update_gui(self):
-        self.gui.render_game(self.to_gui_dict())
-
+        if self.instruction:
+            self.gui.render_game_init(self.to_gui_dict_init())
+            self.gui.render_game(self.to_gui_dict())
+            self.gui.render_instruction()
+        else:
+            self.gui.render_game_init(self.to_gui_dict_init())
+            self.gui.render_game(self.to_gui_dict())
+        self.gui.update()
+        
     def end_game(self):
+        print "end-game"
         if self.gameState.winner!=None:
             winner_id = self.gameState.winner
             print "GAME OVER: player",winner_id,"wins"
-        else:
-            if self.gameState.num_players == 2:
-                if self.players[0].score > self.players[1].score:
-                    winner_id = 0
-                elif self.players[1].score > self.players[0].score:
-                    winner_id = 1
-                else:
-                    winner_id = 2 #tie, show both as winners.
-            elif self.players[0]!=None:
-                winner_id = 0
-            else:
-                winner_id = 1
         del self.gameState
         self.gameState = GameState()
         self.animate_ending(winner_id)
@@ -395,13 +406,22 @@ class TetrisGame(object):
             #self.update_gui()
                         
     def animate_ending(self,winner_board):
-        if winner_board == 2:
-            self.board_animation(0,"outline")
-            self.board_animation(1,"outline")
-        else:
-            self.board_animation(winner_board,"outline","yellow")
+        self.board_animation(winner_board,"outline","yellow")
         self.update_gui()
-        sleep(3)
+        sleep(2)
+        
+        escape = True
+        while escape:
+            ev = self.input.poll()
+            if ev:
+                player,direction = ev
+                #print "Player",player,direction            
+                if direction == UP:
+                    escape = False
+                else:
+                    escape = True
+            else:
+                sleep(0.2)
 
     def create_shapes(self,design): #in progress.....
         shapes = {}
@@ -416,8 +436,8 @@ class TetrisGame(object):
         down_arrow = line[:]
         for xy in down_diags:
             down_arrow.append(xy)
-        sides = [(i,j) for i in [0,9] for j in range(18)]
-        tb = [(i,j) for i in range(10) for j in [0,17]]
+        sides = [(i,j) for i in [0,9] for j in range(MAXY)]
+        tb = [(i,j) for i in range(10) for j in [0,MAXY-1]]
         outline = tb + sides
             
         shapes["down_arrow"] = down_arrow
@@ -427,15 +447,20 @@ class TetrisGame(object):
         
         return shapes[design]
 
-    def to_gui_dict(self):
+    def to_gui_dict_init(self):
         d = {}
         d["max_y"] = MAXY
         d["max_x"] = MAXX
-        d["nr_players"] = NRPLAYERS
+        d["nr_players"] = self.num_players
         d["level"] = self.gameState.level
         
-                
-        for n in range(NRPLAYERS):
+        return d
+        
+
+
+    def to_gui_dict(self):
+        d = {}                
+        for n in range(self.num_players):
             #blocks
             d["board_landed_player" + str(n)] = self.boards[n].landed
 
