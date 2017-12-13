@@ -43,13 +43,14 @@ LEVEL_SPEEDS = range(500,50,-50)
 #NRPLAYERS = 2
 MAXX = 10
 MAXY = 20
-(LEFT, RIGHT, UP, DOWN, DROP, DIE) = range(6) 
+(LEFT, RIGHT, UP, DOWN, DROP, DIE, RELEASE) = range(7) 
 
 COLORS = ["orange", "red", "green", "blue", "purple", "yellow", "magenta"]
 LEVEL_COLORS = ["red", "orange", "yellow", "green", "blue", "purple","orange","magenta", "white"]
 
 #pygame.init()
 #BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
+
 
 
 class Board():
@@ -172,6 +173,8 @@ class Player():
             if direction==UP:
                 self.shape.rotate(clockwise=False)
                 print "handle_move up"
+            elif direction == RELEASE:
+                pass #Do nothing
             else:
                 if not self.shape.move(direction):
                     # if you're heading down then the shape has 'landed'
@@ -184,7 +187,7 @@ class Player():
                         self.nextshape = self.the_nextshape.check_and_create(self.boards[self.id])
                         
                         self.lines += rows_deleted
-                        print rows_deleted
+                        # Score calculation
                         if rows_deleted is 1:
                             self.score += 10
                         elif rows_deleted is 2:
@@ -195,9 +198,9 @@ class Player():
                             self.score += 55
                         
                         # Give packages to the other players
-                        if self.gs.num_players >= 2:
+                        if len(self.gs.active_players) >= 2:
                             if rows_deleted > 1:
-                                for op in self.other_players:
+                                for op in self.gs.active_players:
                                     self.boards[op].receive_lines(rows_deleted-1) 
            
                         # If the shape returned is None, then this indicates that
@@ -272,7 +275,7 @@ class TetrisGame(object):
         self.num_players = self.input.totaljoy
         self.gui.SetupScreen()
         self.gameState = GameState(self.num_players)
-        if self.num_players is 0:
+        if self.num_players is 0: # If no joypad connected then 4 players on keyboard.
             self.num_players = 4
             
         while True:
@@ -297,7 +300,7 @@ class TetrisGame(object):
         self.handle_input() #this calls all other functions, such as add_player, start_game
         
 
-    def add_player(self,num): # num is player number
+    def add_player(self,num, controller): # num is player number
         print "adding player",num
         if self.players[num]==None:
             self.boards[num].clear()
@@ -306,6 +309,7 @@ class TetrisGame(object):
             p = Player(num, self.gameState, self.boards, other_players, self.shapes)
             print "Player" + str(num) + "added"
             self.players[num] = p
+            self.players[num].controller = controller
             self.board_animation(num,"down_arrow")
             self.gameState.num_players+=1
             self.gameState.active_players.append(num)
@@ -341,32 +345,74 @@ class TetrisGame(object):
                 if self.gameState.state != "ending":
                     self.update_gui()
             
-            ev = self.input.poll()
-            if ev:
-                player,direction = ev
-                #print "Player",player,direction
-                if direction == DIE: #Exit instruction
-                    game_on = False
-                    pygame.quit()
-                    sys.exit()
-                if self.gameState.state=="playing":
-                    if self.players[player]!=None:
-                        #DROP is only for debugging purposes for now, to make the game end.
-                        if direction == DROP:
+            
+            player, button = self.input.poll() #If keyboard event UP, DOWN... directions will work, with joypad we get: button.
+            if player is None or button is None:
+                pass #Do not do anything if None
+            elif self.gameState.state=="playing":
+                if self.players[player]!=None:
+                    if self.players[player].controller is 'Lefthanded':
+                        #get direction from button
+                        try:    
+                            if button is 'arrowLeft':
+                                player_move = LEFT
+                            elif button is 'arrowRight':
+                                player_move = RIGHT
+                            elif button is 'arrowUp':
+                                player_move = UP
+                            elif button is 'arrowDown':
+                                player_move = DOWN
+                            elif button is 'roundDown':
+                                player_move = DROP
+                            elif button is 'release':
+                                player_move = RELEASE
+                        except:
+                            pass
+                        
+                    elif self.players[player].controller is 'Righthanded':
+                        #get direction from button
+                        try:    
+                            if button is 'roundLeft':
+                                player_move = LEFT
+                            elif button is 'roundRight':
+                                player_move = RIGHT
+                            elif button is 'roundUp':
+                                player_move = UP
+                            elif button is 'roundDown':
+                                player_move = DOWN
+                            elif button is 'arrowDown':
+                                player_move = DROP
+                            elif button is 'release':
+                                player_move = RELEASE
+                        except:
+                            pass
+                        
+                        
+                    elif self.players[player].controller is 'Keyboard':
+                        player_move = button
+
+                    if player_move == DROP:
                             while self.players[player].handle_move(DOWN):
                                 pass
-                        else:
-                            self.players[player].handle_move(direction)
-                elif self.gameState.state == "waiting":
-                    if direction==UP:
-                        self.add_player(player)
-                    elif direction==DOWN:
-                        if self.players[player]!=None:
-                            self.start_game()
+                    else:
+                        self.players[player].handle_move(player_move)
+                self.update_gui()
                 
+            elif self.gameState.state == "waiting":
+                if button is 'roundUp':
+                    self.add_player(player,'Righthanded')
+                elif button is 'arrowUp':
+                    self.add_player(player,'Lefthanded')
+                elif button is UP:
+                    self.add_player(player,'Keyboard')
+                    
+                elif button is 'roundDown' or button is 'arrowDown' or button is DOWN:
+                    if self.players[player]!=None:
+                        self.start_game()
                 self.update_gui()
             
-            elif t%10000==0:
+            #sleep(0.01)
+            if t%10000==0:
                 t=0
                 self.update_gui()
                 
@@ -393,9 +439,15 @@ class TetrisGame(object):
             winner_id = self.gameState.winner
             print "GAME OVER: player",winner_id,"wins"
         del self.gameState
-        self.gameState = GameState()
+        self.gameState = GameState(self.num_players)
         self.animate_ending(winner_id)
         pygame.mixer.music.stop()
+        
+        # Up date number of players (loypads)
+        self.num_players = self.input.totaljoy
+        if self.num_players is 0: # If no joypad connected then 4 players on keyboard.
+            self.num_players = 4
+        
 
     def board_animation(self, board_id, design, color="green"):
         b = self.boards[board_id]

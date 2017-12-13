@@ -62,6 +62,7 @@ KEY_COMMA = 44 #drop
 KEY_ESC = 27
 
 (LEFT, RIGHT, UP, DOWN, DROP, DIE, RELEASE) = range(7) 
+
 DIRECTIONS = {0:'LEFT', 1:'RIGHT',  2:'UP', 3:'DOWN', 5:'DROP', 6:'DIE'}
 class DdrInput(object):
   """
@@ -90,7 +91,6 @@ class DdrInput(object):
     pygame.joystick.init()
     try: totaljoy = pygame.joystick.get_count()
     except: totaljoy = 0
-    #print totaljoy, 'joysticks loaded'
     for i in range(totaljoy):
       m = pygame.joystick.Joystick(i)
       m.init()
@@ -106,158 +106,72 @@ class DdrInput(object):
     LEFT, RIGHT, UP, DOWN.  Returns None if there is no new input.  Only returns 1 input at a time.
     """
     event = pygame.event.poll()
-    if event.type != 0:
-        pass 
-        #print event
-        
-    player_move = None
-    if event.type == JOY_EVENT_2:
-      player_index, player_move = self.handle_joy_event(event)
-    elif event.type == JOY_EVENT:
-      player_index, player_move = self.handle_joy_event(event)
-      if self.debug_mode:
-        pass
-        #print (player_index, player_move)
-    #debug mode
-    if self.debug_mode:
-      if event.type == KEY_EVENT or event.type == KEY_RELEASE:
-        (player_index, player_move) = self.handle_key_event(event) 
-    #end debug mode
     
-    if player_move != None:
-      if player_move == RELEASE:
-        self.active_inputs[player_index] = None
-        return None
-      else:
-        print 'setting active input'
-        self.active_inputs[player_index] = (.5, time.time(), player_move)
-      return (player_index, player_move)
-    else:
-      #~ for player_index in self.active_inputs:  pass
-        #~ if self.active_inputs[player_index] != None:
-          #~ (fallback_start, start_time, move) = self.active_inputs[player_index]
-          #~ if time.time() - start_time > fallback_start:
-            #~ fallback_start /= 2
-            #~ fallback_start = max(.1, fallback_start)
-            #~ start_time = time.time()
-            #~ self.active_inputs[player_index] = (fallback_start, start_time, move)
-            #~ return (player_index, move)
-      return None
-   
-  def handle_joy_event(self, event):
-      player_index = event.joy
-      #there may be a tricky quick way to code this, but this is more readable
-      #value == 0 -> released
-      player_move = None
-      #if event.type == JOY_EVENT_2+1:
-      #  player_move = RELEASE
-      #  return (player_index, player_move)
-      
-      try:
-        if event.button == 2:
-          player_move = DROP
-      except:
-          pass
-          #print "Button"
-      
-      try:    
-        if event.axis == X:
-          if event.value < 0:
-            player_move = LEFT
-          elif event.value > 0:
-            player_move = RIGHT
+    if event.type == 0:
+        #print "none event"
+        return None, None
+            
+    button = None
+
+    if event.type is JOY_EVENT or event.type is JOY_EVENT_2: #Joyevent1 is arraow, joyevent2 is round buttons.
+        player_index, button = self.handle_joy_event(event)
+    
+    if event.type == KEY_EVENT or event.type == KEY_RELEASE:
+        player_index, button = self.handle_key_event(event)
+        # 'Poll ' + str(player_index) + str(button) 
+    
+    if button != None:
+        if button == 'release':
+            self.active_inputs[player_index] = None
+            return None, None
         else:
-          if event.value > 0:
-            player_move = DOWN
-          elif event.value < 0:
-            player_move = UP
-        if event.value == 0:
-          player_move = RELEASE
-      except:
-        pass
-        #print "Axis"
-        
-      return player_index, player_move
-  
-  '''
+            print 'setting active input'
+            self.active_inputs[player_index] = (.5, time.time(), button)
+            return player_index, button
+    else:
+        return None, None
+    
   def handle_joy_event(self, event):
-      player_index = event.joy
-      #there may be a tricky quick way to code this, but this is more readable
-      #value == 0 -> released
-      player_move = None
-      #if event.type == JOY_EVENT_2+1:
-      #  player_move = RELEASE
-      #  return (player_index, player_move)
-      
-      
-        #<Event(10-JoyButtonDown {'joy': 0, 'button': 0})> #Left up
-        #<Event(10-JoyButtonDown {'joy': 0, 'button': 1})> #Left right
-        #<Event(10-JoyButtonDown {'joy': 0, 'button': 2})> #Left Down
-        #<Event(10-JoyButtonDown {'joy': 0, 'button': 3})> #Left Left
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 1.0, 'axis': 0})> # Right right
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 0})>
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 1.0, 'axis': 1})> # Right down
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 1})>
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': -1.000030518509476, 'axis': 0})> #Right left
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 0})>
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': -1.000030518509476, 'axis': 1})> #Right up
-        #<Event(7-JoyAxisMotion {'joy': 0, 'value': 0.0, 'axis': 1})>
-      
-      
-      if left_hand_arrows:
-        try:
-          if event.button == 2:
-            player_move = DROP
-        except:
-            pass
-            #print "Button"
-        
-        try:    
-          if event.axis == X:
+    player_index = event.joy
+    button = None
+
+    print event
+    try:
+        if event.button == 0:
+            button = 'roundUp'
+        elif event.button == 1:
+            button = 'roundRight'
+        elif event.button == 2:
+            button = 'roundDown'
+        elif event.button == 3:
+            button = 'roundLeft'
+    except:
+        pass
+    
+    try:
+        if event.axis == X:
+            print 'axis is ' + str(event.axis)
             if event.value < 0:
-              player_move = LEFT
+                button = 'arrowLeft'
             elif event.value > 0:
-              player_move = RIGHT
-          else:
+                button = 'arrowRight'
+        elif event.axis == Y:
             if event.value > 0:
-              player_move = DOWN
+                button = 'arrowDown'
             elif event.value < 0:
-              player_move = UP
-          if event.value == 0:
-            player_move = RELEASE
-        except:
-          pass
-          #print "Axis"
+                button = 'arrowUp'
+    except:
+        pass
+    
+    try:
+        if event.value == 0:
+            button = 'release'
+    except:
+        pass
           
-      
-      elif right_hand_arrows:
-        try:
-          if event.value < 0 and event.axis == 1:
-            player_move = DROP
-        except:
-          pass
-            #print "Button"
-        
-        try:    
-          if event.button == 0:
-              player_move = UP
-          elif event.button == 1:
-              player_move = RIGHT
-          elif event.button == 2:
-              player_move = DOWN
-          elif event.button == 3:
-              player_move = UP
-          elif event.value == 0:
-            player_move = RELEASE
-        except:
-          pass
-          #print "Axis"
-      
-      
-          
-        
-      return player_index, player_move
-  '''  
+    print "player " + str(player_index) + ' button ' + str(button) 
+    return player_index, button
+  
 
   def handle_key_event(self, event):
     if event.key == KEY_LEFT:
@@ -338,5 +252,6 @@ class DdrInput(object):
     
     if event.type == KEY_RELEASE:
       player_move = RELEASE
-    #print player_move
-    return (player_index, player_move)
+
+    #print 'ddrinput ' + str(player_move)
+    return player_index, player_move
