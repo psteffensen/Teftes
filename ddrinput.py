@@ -125,8 +125,8 @@ class DdrInput(object):
             self.active_inputs[player_index] = None
             return None, None
         else:
-            print 'setting active input'
-            self.active_inputs[player_index] = (.5, time.time(), button)
+            #print 'setting active input'
+            #self.active_inputs[player_index] = (.5, time.time(), button)
             return player_index, button
     else:
         return None, None
