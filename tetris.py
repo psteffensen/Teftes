@@ -350,45 +350,38 @@ class TetrisGame(object):
             if player is None or button is None:
                 pass #Do not do anything if None
             elif self.gameState.state=="playing":
+                #print "Player " + str(player) + ", Controller " + self.players[player].controller + "Button " + button
                 if self.players[player]!=None:
-                    if self.players[player].controller is 'Lefthanded':
-                        #get direction from button
-                        try:    
-                            if button is 'arrowLeft':
-                                player_move = LEFT
-                            elif button is 'arrowRight':
-                                player_move = RIGHT
-                            elif button is 'arrowUp':
-                                player_move = UP
-                            elif button is 'arrowDown':
-                                player_move = DOWN
-                            elif button is 'roundDown':
-                                player_move = DROP
-                            elif button is 'release':
-                                player_move = RELEASE
-                        except:
-                            pass
+                    if self.players[player].controller == 'Lefthanded':
+                        if button is 'arrowLeft':
+                            player_move = LEFT
+                        elif button is 'arrowRight':
+                            player_move = RIGHT
+                        elif button is 'arrowUp':
+                            player_move = UP
+                        elif button is 'arrowDown':
+                            player_move = DOWN
+                        elif button is 'roundDown':
+                            player_move = DROP
+                        elif button is 'release':
+                            player_move = RELEASE
                         
-                    elif self.players[player].controller is 'Righthanded':
-                        #get direction from button
-                        try:    
-                            if button is 'roundLeft':
-                                player_move = LEFT
-                            elif button is 'roundRight':
-                                player_move = RIGHT
-                            elif button is 'roundUp':
-                                player_move = UP
-                            elif button is 'roundDown':
-                                player_move = DOWN
-                            elif button is 'arrowDown':
-                                player_move = DROP
-                            elif button is 'release':
-                                player_move = RELEASE
-                        except:
-                            pass
+                    elif self.players[player].controller == 'Righthanded':
+                        if button is 'roundLeft':
+                            player_move = LEFT
+                        elif button is 'roundRight':
+                            player_move = RIGHT
+                        elif button is 'roundUp':
+                            player_move = UP
+                        elif button is 'roundDown':
+                            player_move = DOWN
+                        elif button is 'arrowDown':
+                            player_move = DROP
+                        elif button is 'release':
+                            player_move = RELEASE
                         
                         
-                    elif self.players[player].controller is 'Keyboard':
+                    elif self.players[player].controller == 'Keyboard':
                         player_move = button
 
                     if player_move == DROP:
@@ -396,6 +389,7 @@ class TetrisGame(object):
                                 pass
                     else:
                         self.players[player].handle_move(player_move)
+
                 self.update_gui()
                 
             elif self.gameState.state == "waiting":

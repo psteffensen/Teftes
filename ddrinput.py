@@ -105,6 +105,7 @@ class DdrInput(object):
     Returns a tuple of player index (0 or 1) and move, 
     LEFT, RIGHT, UP, DOWN.  Returns None if there is no new input.  Only returns 1 input at a time.
     """
+    event = None
     event = pygame.event.poll()
     
     if event.type == 0:
@@ -122,7 +123,7 @@ class DdrInput(object):
     
     if button != None:
         if button == 'release':
-            self.active_inputs[player_index] = None
+            #self.active_inputs[player_index] = None
             return None, None
         else:
             #print 'setting active input'
@@ -134,8 +135,8 @@ class DdrInput(object):
   def handle_joy_event(self, event):
     player_index = event.joy
     button = None
-
-    print event
+    
+    
     try:
         if event.button == 0:
             button = 'roundUp'
@@ -150,7 +151,7 @@ class DdrInput(object):
     
     try:
         if event.axis == X:
-            print 'axis is ' + str(event.axis)
+            #print 'axis is ' + str(event.axis)
             if event.value < 0:
                 button = 'arrowLeft'
             elif event.value > 0:
@@ -169,7 +170,7 @@ class DdrInput(object):
     except:
         pass
           
-    print "player " + str(player_index) + ' button ' + str(button) 
+    #print "player " + str(player_index) + ' button ' + str(button) 
     return player_index, button
   
 
