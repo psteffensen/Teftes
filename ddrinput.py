@@ -107,13 +107,13 @@ class DdrInput(object):
     """
     event = None
     event = pygame.event.poll()
+    button = None
+    player_index = None
     
     if event.type == 0:
         #print "none event"
         return None, None
             
-    button = None
-
     if event.type is JOY_EVENT or event.type is JOY_EVENT_2: #Joyevent1 is arraow, joyevent2 is round buttons.
         player_index, button = self.handle_joy_event(event)
     
@@ -134,8 +134,7 @@ class DdrInput(object):
     
   def handle_joy_event(self, event):
     player_index = event.joy
-    button = None
-    
+    print event    
     
     try:
         if event.button == 0:
@@ -151,7 +150,6 @@ class DdrInput(object):
     
     try:
         if event.axis == X:
-            #print 'axis is ' + str(event.axis)
             if event.value < 0:
                 button = 'arrowLeft'
             elif event.value > 0:

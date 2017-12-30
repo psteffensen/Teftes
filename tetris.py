@@ -198,21 +198,26 @@ class Player():
                             self.score += 55
                         
                         # Give packages to the other players
-                        if len(self.gs.active_players) >= 2:
-                            if rows_deleted > 1:
-                                for op in self.gs.active_players:
-                                    self.boards[op].receive_lines(rows_deleted-1) 
+			num = len(self.gs.active_players)
+                        if num >= 2:
+                            if rows_deleted > (num-1):
+                                for op in self.gs.active_players: 
+                                    self.boards[op].receive_lines(rows_deleted-(num-1))
+			    elif num > 4 and rows_deleted == 4:
+                                for op in self.gs.active_players: 
+                                    self.boards[op].receive_lines(1)) # if more that four players: 1 package.
+				
+			del num
+				 
            
                         # If the shape returned is None, then this indicates that
                         # that the check before creating it failed and the
                         # game is over!
                         if self.shape is None:
-                            self.gs.active_players.remove(self.id)
-                            if self.gs.num_players >= 2 and len(self.gs.active_players) >= 2:
+                            if self.gs.num_players >= 2 and len(self.gs.active_players)-1 >= 2:
                                 print "List after pop " + str(self.gs.active_players)
-                                del self
-                                return None
-                            elif self.gs.num_players >= 2 and len(self.gs.active_players) <= 1:
+                                #return None
+                            elif self.gs.num_players >= 2 and len(self.gs.active_players)-1 < 2:
                                 self.gs.winner = self.gs.active_players[0] # winner is last active player
                                 print "List after last pop " + str(self.gs.active_players)
                                 print "winner is " + str(self.gs.winner)
@@ -220,7 +225,9 @@ class Player():
                             else:                                
                                 return ValueError("Did not end correctly!")
                                 #game ends
-                                
+                            self.gs.active_players.remove(self.id)
+                            #del self
+
                         # do we go up a level?
                         if (self.gs.level < len(LEVEL_SPEEDS)-1 and self.lines / LINES_TO_ADVANCE >= self.gs.level+1 ):
                             self.gs.level+=1
