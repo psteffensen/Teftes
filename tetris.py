@@ -202,10 +202,16 @@ class Player():
                         if num >= 2:
                             if rows_deleted > (num-1):
                                 for op in self.gs.active_players: 
-                                    self.boards[op].receive_lines(rows_deleted-(num-1))
+                                    if op == self.id:
+					pass
+				    else:
+					self.boards[op].receive_lines(rows_deleted-(num-1))
 			    elif num > 4 and rows_deleted == 4:
                                 for op in self.gs.active_players: 
-                                    self.boards[op].receive_lines(1)) # if more that four players: 1 package.
+                                    if op == self.id:
+					pass
+				    else:
+				        self.boards[op].receive_lines(1) # if more that four players: 1 package.
 				
 			del num
 				 
@@ -463,19 +469,20 @@ class TetrisGame(object):
         self.update_gui()
         sleep(2)
         
-        escape = True
-        while escape:
-            ev = self.input.poll()
-            if ev:
-                player,direction = ev
-                #print "Player",player,direction            
-                if direction == UP:
-                    escape = False
-                else:
-                    escape = True
-            else:
-                sleep(0.2)
-
+        #escape = True
+        #while escape:
+        #    ev = self.input.poll()
+        #    if ev:
+        #        player,direction = ev
+        #        #print "Player",player,direction            
+        #        if direction == UP:
+        #            escape = False
+        #        else:
+        #            escape = True
+        #    else:
+        #        sleep(0.2)
+	sleep(2)
+	
     def create_shapes(self,design): #in progress.....
         shapes = {}
         y = 4
